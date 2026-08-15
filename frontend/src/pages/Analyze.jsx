@@ -1,14 +1,18 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 
 function Analyze() {
+    const navigate = useNavigate()
+
+    const MAX_JOB_DESCRIPTION_LENGTH = 5000
+
     const [resume, setResume] = useState(null)
     const [jobDescription, setJobDescription] = useState("")
     const [error, setError] = useState("")
     const [isAnalyzing, setIsAnalyzing] = useState(false)
+    const [isDragging, setIsDragging] = useState(false)
 
-    const handleFileChange = (event) => {
-        const file = event.target.files[0]
-
+    const validateAndSetFile = (file) => {
         if (!file) return
 
         // Check file type
@@ -32,10 +36,37 @@ function Analyze() {
         setError("")
     }
 
+    const handleFileChange = (event) => {
+        const file = event.target.files[0]
+        validateAndSetFile(file)
+    }
+
+    const handleDragOver = (event) => {
+        event.preventDefault()
+        setIsDragging(true)
+    }
+
+    const handleDragLeave = (event) => {
+        event.preventDefault()
+        setIsDragging(false)
+    }
+
+    const handleDrop = (event) => {
+        event.preventDefault()
+        setIsDragging(false)
+
+        const file = event.dataTransfer.files[0]
+        validateAndSetFile(file)
+    }
+
     const removeResume = () => {
         setResume(null)
         setError("")
     }
+
+    const isFormValid =
+        resume !== null &&
+        jobDescription.trim().length > 0
 
     const handleAnalyze = () => {
         if (!resume) {
@@ -55,7 +86,7 @@ function Analyze() {
         // Later this will be replaced with the backend API call.
         setTimeout(() => {
             setIsAnalyzing(false)
-            console.log("Analysis completed")
+            navigate("/results")
         }, 3000)
     }
 
@@ -74,7 +105,7 @@ function Analyze() {
                             </h2>
 
                             <p className="mt-2 text-sm text-gray-500">
-                                This may take a few moments.
+                                Comparing your resume with the job description.
                             </p>
                         </div>
 
@@ -112,16 +143,47 @@ function Analyze() {
             )}
 
             {/* Main Page */}
-            <main className="min-h-screen px-6 py-12">
+            <main className="min-h-screen px-4 py-10 sm:px-6 sm:py-12">
                 <div className="mx-auto max-w-5xl">
 
                     {/* Header */}
                     <div className="mb-10">
+
+                        {/* Progress */}
+                        <div className="mb-8 flex flex-wrap items-center gap-2 text-xs sm:gap-3 sm:text-sm">
+
+                            <div className="flex items-center gap-2 font-medium">
+                                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-xs text-white">
+                                    1
+                                </span>
+                                Resume
+                            </div>
+
+                            <div className="h-px w-6 bg-gray-300 sm:w-10" />
+
+                            <div className="flex items-center gap-2 text-gray-400">
+                                <span className="flex h-7 w-7 items-center justify-center rounded-full border text-xs">
+                                    2
+                                </span>
+                                Job Description
+                            </div>
+
+                            <div className="h-px w-6 bg-gray-300 sm:w-10" />
+
+                            <div className="flex items-center gap-2 text-gray-400">
+                                <span className="flex h-7 w-7 items-center justify-center rounded-full border text-xs">
+                                    3
+                                </span>
+                                Analysis
+                            </div>
+
+                        </div>
+
                         <p className="text-sm font-medium uppercase tracking-widest text-gray-500">
                             Resume Analysis
                         </p>
 
-                        <h1 className="mt-2 text-4xl font-bold">
+                        <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
                             Analyze your resume
                         </h1>
 
@@ -129,6 +191,7 @@ function Analyze() {
                             Upload your resume and provide the job description to see
                             how well they match.
                         </p>
+
                     </div>
 
                     {/* Main Inputs */}
@@ -146,14 +209,24 @@ function Analyze() {
                             </p>
 
                             {!resume ? (
-                                <label className="mt-6 flex min-h-64 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center hover:bg-gray-50">
+                                <label
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                    className={`mt-6 flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition sm:min-h-64 ${isDragging
+                                        ? "border-black bg-gray-50"
+                                        : "border-gray-300 hover:bg-gray-50"
+                                        }`}
+                                >
 
                                     <div className="text-4xl">
                                         📄
                                     </div>
 
                                     <p className="mt-4 font-medium">
-                                        Drop your resume here
+                                        {isDragging
+                                            ? "Release to upload your resume"
+                                            : "Drop your resume here"}
                                     </p>
 
                                     <p className="mt-2 text-sm text-gray-500">
@@ -165,31 +238,46 @@ function Analyze() {
                                     </p>
 
                                     <input
+                                        id="resume-upload"
                                         type="file"
                                         accept=".pdf,.docx"
                                         onChange={handleFileChange}
                                         className="hidden"
+                                        aria-label="Upload your resume"
                                     />
 
                                 </label>
                             ) : (
-                                <div className="mt-6 rounded-xl border p-5">
+                                <div className="mt-6 rounded-xl border bg-gray-50 p-5">
 
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex items-start justify-between gap-4">
 
-                                        <div>
-                                            <p className="font-medium">
-                                                ✓ {resume.name}
+                                        <div className="min-w-0">
+
+                                            <div className="flex items-center gap-2">
+                                                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-sm text-white">
+                                                    ✓
+                                                </span>
+
+                                                <p className="truncate font-medium">
+                                                    {resume.name}
+                                                </p>
+                                            </div>
+
+                                            <p className="mt-2 text-sm text-gray-500">
+                                                PDF or DOCX • {(resume.size / 1024 / 1024).toFixed(2)} MB
                                             </p>
 
-                                            <p className="mt-1 text-sm text-gray-500">
-                                                {(resume.size / 1024 / 1024).toFixed(2)} MB
+                                            <p className="mt-1 text-xs text-gray-400">
+                                                Resume uploaded successfully
                                             </p>
+
                                         </div>
 
                                         <button
+                                            type="button"
                                             onClick={removeResume}
-                                            className="text-sm text-gray-500 hover:text-black"
+                                            className="shrink-0 text-sm text-gray-500 hover:text-black"
                                         >
                                             Remove
                                         </button>
@@ -212,18 +300,30 @@ function Analyze() {
                                 Paste the job description you're applying for.
                             </p>
 
+                            <label
+                                htmlFor="job-description"
+                                className="mt-6 block text-sm font-medium"
+                            >
+                                Job description
+                            </label>
+
                             <textarea
+                                id="job-description"
                                 value={jobDescription}
                                 onChange={(event) => {
-                                    setJobDescription(event.target.value)
-                                    setError("")
+                                    const value = event.target.value
+
+                                    if (value.length <= MAX_JOB_DESCRIPTION_LENGTH) {
+                                        setJobDescription(value)
+                                        setError("")
+                                    }
                                 }}
-                                className="mt-6 min-h-64 w-full resize-none rounded-xl border p-4 text-sm outline-none focus:border-black"
+                                className="mt-2 min-h-64 w-full resize-none rounded-xl border p-4 text-sm outline-none focus:border-black"
                                 placeholder="Paste the job description here..."
                             />
 
                             <p className="mt-2 text-right text-xs text-gray-400">
-                                {jobDescription.length} characters
+                                {jobDescription.length} / {MAX_JOB_DESCRIPTION_LENGTH}
                             </p>
 
                         </div>
@@ -232,7 +332,10 @@ function Analyze() {
 
                     {/* Error */}
                     {error && (
-                        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        <div
+                            role="alert"
+                            className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                        >
                             {error}
                         </div>
                     )}
@@ -242,10 +345,19 @@ function Analyze() {
 
                         <button
                             onClick={handleAnalyze}
-                            disabled={isAnalyzing}
-                            className="rounded-xl bg-black px-8 py-3.5 font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={!isFormValid || isAnalyzing}
+                            className={`rounded-xl px-8 py-3.5 font-medium text-white transition ${!isFormValid || isAnalyzing
+                                ? "cursor-not-allowed bg-gray-300"
+                                : "bg-black hover:bg-gray-800"
+                                }`}
                         >
-                            {isAnalyzing ? "Analyzing..." : "Analyze Resume"}
+                            {isAnalyzing
+                                ? "Analyzing..."
+                                : !resume
+                                    ? "Upload Resume"
+                                    : !jobDescription.trim()
+                                        ? "Enter Job Description"
+                                        : "Analyze Resume"}
                         </button>
 
                     </div>
