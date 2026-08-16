@@ -68,7 +68,7 @@ function Analyze() {
         resume !== null &&
         jobDescription.trim().length > 0
 
-    const handleAnalyze = () => {
+    const handleAnalyze = async () => {
         if (!resume) {
             setError("Please upload your resume first.")
             return
@@ -82,12 +82,40 @@ function Analyze() {
         setError("")
         setIsAnalyzing(true)
 
-        // Temporary simulation.
-        // Later this will be replaced with the backend API call.
-        setTimeout(() => {
+        try {
+            const formData = new FormData()
+
+            formData.append("resume", resume)
+            formData.append("job_description", jobDescription)
+
+            const response = await fetch(
+                "http://127.0.0.1:8000/api/analyze",
+                {
+                    method: "POST",
+                    body: formData,
+                }
+            )
+
+            if (!response.ok) {
+                throw new Error("Analysis failed")
+            }
+
+            const data = await response.json()
+
+            console.log("Backend result:", data)
+
+            navigate("/results", {
+                state: {
+                    result: data,
+                },
+            })
+
+        } catch (error) {
+            console.error(error)
+            setError("Something went wrong while analyzing your resume.")
+        } finally {
             setIsAnalyzing(false)
-            navigate("/results")
-        }, 3000)
+        }
     }
 
     return (
